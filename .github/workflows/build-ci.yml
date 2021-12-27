@@ -3,26 +3,31 @@ on: push
 
 jobs:
   linux1:
+    strategy:
+      matrix:
+        resolver: [lts-12, lts-13, lts-14, lts-15, lts-16, lts-17]
     name: Build the Haskell software
     runs-on: ubuntu-latest
     steps:
     - name: set up Haskell environment
-      uses: hapytex/github-actions/setup-haskell@master
+      uses: hapytex/github-actions/actions/setup-haskell@master
     - name: checkout code
       uses: actions/checkout@v2.3.1
     - name: build haskell project
-      uses: hapytex/github-actions/build-haskell-project@master
+      uses: hapytex/github-actions/actions/build-haskell-project@master
+      with:
+        resolver: ${{ matrix.resolver }}
 
   linux2:
     name: Build the Haddock documentation
     runs-on: ubuntu-latest
     steps:
     - name: set up Haskell environment
-      uses: hapytex/github-actions/setup-haskell@master
+      uses: hapytex/github-actions/actions/setup-haskell@master
     - name: checkout code
       uses: actions/checkout@v2.3.1
     - name: make Haddock documentation
-      uses: hapytex/github-actions/run-haddock@master
+      uses: hapytex/github-actions/actions/run-haddock@master
       id: haddock
     - name: echo path
       run: "echo '${{ steps.haddock.outputs.haddock-path }}'"
@@ -34,7 +39,7 @@ jobs:
     - name: checkout code
       uses: actions/checkout@v2.3.1
     - name: look for todos
-      uses: hapytex/github-actions/look-for-todos@master
+      uses: hapytex/github-actions/actions/look-for-todos@master
       with:
         directory: src
 
@@ -46,35 +51,43 @@ jobs:
     - name: checkout code
       uses: actions/checkout@v2.3.1
     - name: look for todos
-      uses: hapytex/github-actions/hlint@master
+      uses: hapytex/github-actions/actions/hlint@master
+      with:
+        directory: src
 
   linux5:
+    strategy:
+      matrix:
+        resolver: [lts-13, lts-14, lts-15, lts-16, lts-17]
     name: Run the tests
     runs-on: ubuntu-latest
     steps:
     - name: set up Haskell environment
-      uses: hapytex/github-actions/setup-haskell@master
+      uses: hapytex/github-actions/actions/setup-haskell@master
     - name: checkout code
       uses: actions/checkout@v2.3.1
-    - name: run the tests of the package
-      run: stack --no-terminal --skip-ghc-check test
+    - name: test the software with the given resolver
+      uses: hapytex/github-actions/actions/run-haskell-tests@master
+      with:
+        resolver: ${{ matrix.resolver }}
 
   linux6:
     name: Deploy documentation to GitHub pages
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/')
     steps:
-    - uses: hapytex/github-actions/setup-haskell@master
+    - uses: hapytex/github-actions/actions/setup-haskell@master
     - name: checkout code
       uses: actions/checkout@v2.3.1
     - name: make Haddock documentation
-      uses: hapytex/github-actions/run-haddock@master
+      uses: hapytex/github-actions/actions/run-haddock@master
       id: haddock
     - name: deploy the documentation on the GitHub pages
       uses: JamesIves/github-pages-deploy-action@4.0.0
       with:
         branch: gh-pages
         folder: "${{ steps.haddock.outputs.haddock-path }}"
+        single-commit: true
 
   linux7:
     name: Deploy package on hackage
@@ -82,11 +95,11 @@ jobs:
     needs: [linux1, linux2, linux3, linux4, linux5, linux6]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-    - uses: hapytex/github-actions/setup-haskell@master
+    - uses: hapytex/github-actions/actions/setup-haskell@master
     - name: checkout code
       uses: actions/checkout@v2.3.1
     - name: make Haddock documentation
-      uses: hapytex/github-actions/hackage-publish@master
+      uses: hapytex/github-actions/actions/hackage-publish@master
       with:
-        hackage-user: "${{ secrets.HACKAGE_USER  }}"
-        hackage-password: "${{ secrets.HACKAGE_PASSWORD }}"
+        HACKAGE_USERNAME: "${{ secrets.HACKAGE_USERNAME }}"
+        HACKAGE_PASSWORD: "${{ secrets.HACKAGE_PASSWORD }}"
