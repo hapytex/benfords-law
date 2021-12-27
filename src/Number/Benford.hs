@@ -1,7 +1,7 @@
 module Number.Benford (
     firstDigit, firstDigit10
   , firstDigit', firstDigit10'
-  , startSequence', startSequence10'
+  , startSequence', startSequence2', startSequence10'
   , startSequence10
   ) where
 
@@ -23,8 +23,11 @@ firstDigit' radix digit = logBase (fromIntegral radix) ((d + 1) / d)
     where d = fromIntegral digit
 
 startSequence10' :: Floating a => Int -> a
-startSequence10' n = log (1 + 1 / n') / log 10
+startSequence10' n = logBase 10 (1 + 1 / n')
   where n' = fromIntegral n
+
+startSequence2' :: Floating a => Int -> a
+startSequence2' n = logBase 2 (1 + 1 / fromIntegral n)
 
 startSequence10 :: Floating a => Int -> Maybe a
 startSequence10 n
