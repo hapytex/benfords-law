@@ -1,6 +1,6 @@
 name:                benfords-law
 version:             0.1.0.0
--- synopsis:
+synopsis:            Determining probabilities and generating sequences according to Benford's law.
 -- description:
 homepage:            https://github.com/hapytex/benfords-law#readme
 license:             BSD3

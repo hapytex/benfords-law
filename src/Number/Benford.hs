@@ -1,3 +1,13 @@
+{-|
+Module      : Number.Benford
+Description : Determining probabilities and generating sequences according to Benford's law.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module makes it possible to calculate probabilities and generate sequences specified by /Benford's law/.
+-}
+
 module Number.Benford (
     -- * Probabilities of the first digit
     firstDigit, firstDigit10
@@ -94,12 +104,18 @@ startSequence' radix ns
           where go q = (r*q +) . fromIntegral
         r = fromIntegral radix :: Integer
 
+-- | Determine the probability of a number in a number system with the given radix to start with the given sequence of digits, leading zeros are ignored.
+-- The function will return a 'Nothing' in case the radix or the digit sequence is invalid.
 startSequence :: Floating a
-  => Int
-  -> [Int]
-  -> Maybe a
-startSequence radix ns = undefined
+  => Int  -- ^ The given /radix/ of the number system, must be greater than one.
+  -> [Int]  -- ^  The sequence of digits in the given number system. Leading zeros are ignored, all digits must be greater than or equal to zero, and less than the radix.
+  -> Maybe a  -- ^ The probability of the given digit sequence in a number system with the given radix wrapped in a 'Just'. 'Nothing' if the given radix or digit sequence is invalid.
+startSequence radix
+  | radix <= 1 = const Nothing
+  | otherwise = go
+  where go ns = undefined
 
+{-
 generateBenfordSequence10 :: RandomGen g
   => g
   -> [Int]
@@ -115,3 +131,4 @@ generateBenfordSequence :: (Integral a, Random a, RandomGen g)
   -> g
   -> [a]
 generateBenfordSequence = undefined
+-}
