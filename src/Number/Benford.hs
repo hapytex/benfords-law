@@ -19,7 +19,7 @@ module Number.Benford (
 
 import Data.Foldable(foldl')
 
-import System.Random(Random, RandomGen)
+-- import System.Random(Random, RandomGen)
 
 -- | Determine the probability of the first digit for a /decimal/ system.
 firstDigit10 :: Floating a
