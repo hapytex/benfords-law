@@ -113,7 +113,7 @@ startSequence :: Floating a
 startSequence radix
   | radix <= 1 = const Nothing
   | otherwise = go
-  where go ns = Nothing
+  where go _ = Nothing
 
 {-
 generateBenfordSequence10 :: RandomGen g
