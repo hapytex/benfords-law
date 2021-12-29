@@ -14,12 +14,14 @@ module Number.Benford (
     -- * Probabilities of the first digit
     firstDigit, firstDigit10
   , firstDigit', firstDigit10'
+    -- * Cumulative density for the first digit
+  , firstDigitCdf, firstDigitCdf10
+  , firstDigitCdf', firstDigitCdf10'
     -- * Probabilities of numbers starting with a sequence of digits
   , startSequence', startSequence2', startSequence10'
   , startSequence, startSequence2, startSequence10
     -- * Generate sequences based on Benford's law
   , generateBenfordSequence, generateBenfordSequence2, generateBenfordSequence10
-  , _reverseLookup
   ) where
 
 import Data.Foldable(foldl')
@@ -65,6 +67,37 @@ firstDigit' :: Floating a
   -> a  -- ^ The probability of the given digit being the first digit for a number in a number system for the given radix, unspecified behavior if the radix or digit do not satisfy the conditions.
 firstDigit' radix digit = logBase (fromIntegral radix) ((d + 1) / d)
     where d = fromIntegral digit
+
+-- | Determine the /cummulative distribution function/ for the first digit in a decimal number system.
+firstDigitCdf10' :: Floating a
+  => Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than ten.
+  -> a  -- ^ The probability of the digit being less than or equal to the given value. For invalid parameters, this is unspecified behavior.
+firstDigitCdf10' = firstDigitCdf' 10
+
+-- | Determine the /cummulative distribution function/ for the first digit in a number system with the given radix.
+firstDigitCdf' :: Floating a
+  => Int  -- ^ The given radix of the number system for which we determine the first digit.
+  -> Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than the radix.
+  -> a  -- ^ The probability of the digit being less than or equal to the given value. For invalid parameters, this is unspecified behavior.
+firstDigitCdf' radix digit = logBase (fromIntegral radix) (fromIntegral (digit+1))
+
+-- | Determine the /cummulative distribution function/ for the first digit in a decimal number system.
+firstDigitCdf10 :: Floating a
+  => Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than ten.
+  -> Maybe a  -- ^ The probability of the digit being less than or equal to the given value wrapped in a 'Just'. If the digit is invalid, 'Nothing' is returned.
+firstDigitCdf10 = firstDigitCdf 10
+
+-- | Determine the /cummulative distribution function/ for the first digit in a number system with the given radix.
+firstDigitCdf :: Floating a
+  => Int  -- ^ The given radix of the number system for which we determine the first digit.
+  -> Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than the radix.
+  -> Maybe a  -- ^ The probability of the digit being less than or equal to the given value wrapped in a 'Just'. If the radix or the digit is invalid, 'Nothing' is returned.
+firstDigitCdf radix
+  | radix < 2 = const Nothing
+  | otherwise = go
+  where go digit
+          | digit <= 0 || digit >= radix = Nothing
+          | otherwise = Just (firstDigitCdf' radix digit)
 
 -- | Determine the probability of the sequence starting with the given digits. The leading zeros are ignored. If you
 -- thus call @startSequence10' 1425@, you obtain the probability of a number starting with @1@, @4@, @2@, and @5@ as digits.
@@ -128,6 +161,12 @@ startSequence radix
           | x < 0 || x >= radix = Nothing
           | otherwise = calcSum (r*n + fromIntegral x) xs
         r = fromIntegral radix :: Integer
+
+cdfToDigit10' :: (Ord a, Floating a) => a -> Int
+cdfToDigit10' = cdfToDigit' 10
+
+cdfToDigit' :: (Ord a, Floating a) => Int -> a -> Int
+cdfToDigit' radix cprob = _reverseLookup cprob radix 1 (radix-1)
 
 _reverseLookup :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int
 _reverseLookup prob radix mn mx = _reverseLookup' prob radix mn mn mx
