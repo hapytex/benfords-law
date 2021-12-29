@@ -113,7 +113,7 @@ startSequence :: Floating a
 startSequence radix
   | radix <= 1 = const Nothing
   | otherwise = go
-  where go ns = undefined
+  where go ns = const Nothing
 
 {-
 generateBenfordSequence10 :: RandomGen g
@@ -130,5 +130,5 @@ generateBenfordSequence :: (Integral a, Random a, RandomGen g)
   => Int
   -> g
   -> [a]
-generateBenfordSequence = undefined
+generateBenfordSequence =
 -}
