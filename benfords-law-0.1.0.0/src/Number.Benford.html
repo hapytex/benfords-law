@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : Number.Benford
+Description : Determining probabilities and generating sequences according to Benford's law.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module makes it possible to calculate probabilities and generate sequences specified by /Benford's law/.
+-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Number.Benford</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Probabilities of the first digit</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Number.Benford.html#firstDigit"><span class="hs-identifier">firstDigit</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#firstDigit10"><span class="hs-identifier">firstDigit10</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#firstDigit%27"><span class="hs-identifier">firstDigit'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#firstDigit10%27"><span class="hs-identifier">firstDigit10'</span></a></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Probabilities of numbers starting with a sequence of digits</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#startSequence%27"><span class="hs-identifier">startSequence'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#startSequence2%27"><span class="hs-identifier">startSequence2'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#startSequence10%27"><span class="hs-identifier">startSequence10'</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#startSequence"><span class="hs-identifier">startSequence</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#startSequence2"><span class="hs-identifier">startSequence2</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Number.Benford.html#startSequence10"><span class="hs-identifier">startSequence10</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Foldable</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">foldl'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- import System.Random(Random, RandomGen)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | Determine the probability of the first digit for a /decimal/ system.</span><span>
+</span><span id="line-25"></span><span id="local-6989586621679025717"><span class="annot"><a href="Number.Benford.html#firstDigit10"><span class="hs-identifier hs-type">firstDigit10</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025717"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given digit for which we determine the probability, should be greater than zero and less than 10.</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679025717"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability for the given digit to be the first digit in a number wrapped in a 'Just'; 'Nothing' if the digit is invalid.</span></span><span>
+</span><span id="line-28"></span><span id="firstDigit10"><span class="annot"><span class="annottext">firstDigit10 :: Int -&gt; Maybe a
+</span><a href="Number.Benford.html#firstDigit10"><span class="hs-identifier hs-var hs-var">firstDigit10</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Maybe a
+forall a. Floating a =&gt; Int -&gt; Int -&gt; Maybe a
+</span><a href="Number.Benford.html#firstDigit"><span class="hs-identifier hs-var">firstDigit</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Determine the probability for a given digit to be the first digit for a number in a number system with a given radix.</span><span>
+</span><span id="line-31"></span><span id="local-6989586621679025765"><span class="annot"><a href="Number.Benford.html#firstDigit"><span class="hs-identifier hs-type">firstDigit</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025765"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given radix, should be greater than or equal to two.</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given digit to determine the probability. Should be greater than zero and less than the radix.</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679025765"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability for the given digit to be the first digit in a number system with the given radix wrapped in a 'Just'; 'Nothing' if the radix or digit are invalid.</span></span><span>
+</span><span id="line-35"></span><span id="firstDigit"><span class="annot"><span class="annottext">firstDigit :: Int -&gt; Int -&gt; Maybe a
+</span><a href="Number.Benford.html#firstDigit"><span class="hs-identifier hs-var hs-var">firstDigit</span></a></span></span><span> </span><span id="local-6989586621679025716"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025716"><span class="hs-identifier hs-var">radix</span></a></span></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025716"><span class="hs-identifier hs-var">radix</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; Int -&gt; Maybe a
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe a
+forall a. Floating a =&gt; Int -&gt; Maybe a
+</span><a href="#local-6989586621679025713"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679025713"><span class="annot"><span class="annottext">go :: Int -&gt; Maybe a
+</span><a href="#local-6989586621679025713"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679025712"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025712"><span class="hs-identifier hs-var">digit</span></a></span></span><span>
+</span><span id="line-39"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025712"><span class="hs-identifier hs-var">digit</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025712"><span class="hs-identifier hs-var">digit</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025716"><span class="hs-identifier hs-var">radix</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-40"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; a
+forall a. Floating a =&gt; Int -&gt; Int -&gt; a
+</span><a href="Number.Benford.html#firstDigit%27"><span class="hs-identifier hs-var">firstDigit'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025716"><span class="hs-identifier hs-var">radix</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025712"><span class="hs-identifier hs-var">digit</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | Determine the probability of the first digit in a /decimal/ system.</span><span>
+</span><span id="line-43"></span><span id="local-6989586621679025710"><span class="annot"><a href="Number.Benford.html#firstDigit10%27"><span class="hs-identifier hs-type">firstDigit10'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025710"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given digit to determine the probability of.</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025710"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability for the given digit to be the first digit of a number. Unspecified behavior in case the digit is not between 1 and 9.</span></span><span>
+</span><span id="line-46"></span><span id="firstDigit10%27"><span class="annot"><span class="annottext">firstDigit10' :: Int -&gt; a
+</span><a href="Number.Benford.html#firstDigit10%27"><span class="hs-identifier hs-var hs-var">firstDigit10'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; a
+forall a. Floating a =&gt; Int -&gt; Int -&gt; a
+</span><a href="Number.Benford.html#firstDigit%27"><span class="hs-identifier hs-var">firstDigit'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | Determine the probability of the first digit for a number system with a given radix.</span><span>
+</span><span id="line-49"></span><span id="local-6989586621679025758"><span class="annot"><a href="Number.Benford.html#firstDigit%27"><span class="hs-identifier hs-type">firstDigit'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025758"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given /radix/, should be greater than or equal to two.</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given /digit/, should be greater than zero and less than the radix.</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025758"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability of the given digit being the first digit for a number in a number system for the given radix, unspecified behavior if the radix or digit do not satisfy the conditions.</span></span><span>
+</span><span id="line-53"></span><span id="firstDigit%27"><span class="annot"><span class="annottext">firstDigit' :: Int -&gt; Int -&gt; a
+</span><a href="Number.Benford.html#firstDigit%27"><span class="hs-identifier hs-var hs-var">firstDigit'</span></a></span></span><span> </span><span id="local-6989586621679025709"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025709"><span class="hs-identifier hs-var">radix</span></a></span></span><span> </span><span id="local-6989586621679025708"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025708"><span class="hs-identifier hs-var">digit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Floating a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">logBase</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025709"><span class="hs-identifier hs-var">radix</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679025706"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679025706"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679025706"><span class="annot"><span class="annottext">d :: a
+</span><a href="#local-6989586621679025706"><span class="hs-identifier hs-var hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025708"><span class="hs-identifier hs-var">digit</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Determine the probability of the sequence starting with the given digits. The leading zeros are ignored. If you</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- thus call @startSequence10' 1425@, you obtain the probability of a number starting with @1@, @4@, @2@, and @5@ as digits.</span><span>
+</span><span id="line-58"></span><span id="local-6989586621679025743"><span id="local-6989586621679025744"><span class="annot"><a href="Number.Benford.html#startSequence10%27"><span class="hs-identifier hs-type">startSequence10'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679025744"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025743"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025744"><span class="hs-identifier hs-type">i</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Integral' number that contains the start sequence (with an optional sequence of &quot;leading zeros&quot;), should be greater than zero.</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025743"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability of a number to start with the given start sequence. Unspecified if the number is less than zero.</span></span></span><span>
+</span><span id="line-61"></span><span id="startSequence10%27"><span class="annot"><span class="annottext">startSequence10' :: i -&gt; a
+</span><a href="Number.Benford.html#startSequence10%27"><span class="hs-identifier hs-var hs-var">startSequence10'</span></a></span></span><span> </span><span class="annot"><span class="annottext">i
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-62"></span><span class="annot"><a href="Number.Benford.html#startSequence10%27"><span class="hs-identifier hs-var">startSequence10'</span></a></span><span> </span><span id="local-6989586621679025703"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025703"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Floating a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">logBase</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">10</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679025702"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679025702"><span class="annot"><span class="annottext">n' :: a
+</span><a href="#local-6989586621679025702"><span class="hs-identifier hs-var hs-var">n'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">i -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025703"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- | Determine the probability of the sequence starting with the given digits of a binary number. Binary numbers always start</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- with @1@. If you thus call @startSequence2' 9@, you get the probability of a binary number starting with @1@, @0@, @0@, and @1@</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- as binary digits.</span><span>
+</span><span id="line-68"></span><span id="local-6989586621679025700"><span id="local-6989586621679025701"><span class="annot"><a href="Number.Benford.html#startSequence2%27"><span class="hs-identifier hs-type">startSequence2'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679025701"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025700"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025701"><span class="hs-identifier hs-type">i</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Integral' binary number that contains the binary start sequence (with an optional sequence of &quot;leading zeros&quot;), should be greater than zero.</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025700"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability of a binary number starting with the givenn binary sequence. Unspecified if the number is less than zero.</span></span></span><span>
+</span><span id="line-71"></span><span id="startSequence2%27"><span class="annot"><span class="annottext">startSequence2' :: i -&gt; a
+</span><a href="Number.Benford.html#startSequence2%27"><span class="hs-identifier hs-var hs-var">startSequence2'</span></a></span></span><span> </span><span class="annot"><span class="annottext">i
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Number.Benford.html#startSequence2%27"><span class="hs-identifier hs-var">startSequence2'</span></a></span><span> </span><span id="local-6989586621679025699"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025699"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Floating a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">logBase</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">2</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">i -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025699"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | Determine the probability of the sequence starting with the given digits. The leading zeros are ignored. If you</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- thus call @startSequence10' 1425@, you obtain the probability of a number starting with @1@, @4@, @2@, and @5@ as digits.</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- The result is wrapped in a 'Just'; if the value is less than zero, 'Nothing' is returned.</span><span>
+</span><span id="line-77"></span><span id="local-6989586621679025697"><span id="local-6989586621679025698"><span class="annot"><a href="Number.Benford.html#startSequence10"><span class="hs-identifier hs-type">startSequence10</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679025698"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025697"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025698"><span class="hs-identifier hs-type">i</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Integral' number that contains the start sequence (with an optional sequence of &quot;leading zeros&quot;), should be greater than zero.</span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679025697"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability of a number starting with the given sequence wrapped in a 'Just'. If the given sequence is not valid, 'Nothing' is returned.</span></span></span><span>
+</span><span id="line-80"></span><span id="startSequence10"><span class="annot"><span class="annottext">startSequence10 :: i -&gt; Maybe a
+</span><a href="Number.Benford.html#startSequence10"><span class="hs-identifier hs-var hs-var">startSequence10</span></a></span></span><span> </span><span id="local-6989586621679025696"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025696"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025696"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">i -&gt; a
+forall i a. (Integral i, Floating a) =&gt; i -&gt; a
+</span><a href="Number.Benford.html#startSequence10%27"><span class="hs-identifier hs-var">startSequence10'</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025696"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- | Determine the probability of the sequence starting with the given digits of a binary number. Binary numbers always start</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- with @1@. If you thus call @startSequence2' 9@, you get the probability of a binary number starting with @1@, @0@, @0@, and @1@</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- as binary digits. The result is wrapped in a 'Just'; if the value is less than zero, 'Nothing' is returned.</span><span>
+</span><span id="line-87"></span><span id="local-6989586621679025694"><span id="local-6989586621679025695"><span class="annot"><a href="Number.Benford.html#startSequence2"><span class="hs-identifier hs-type">startSequence2</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679025695"><span class="hs-identifier hs-type">i</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025694"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025695"><span class="hs-identifier hs-type">i</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Integral' binary number that contains the binary start sequence (with an optional sequence of &quot;leading zeros&quot;), should be greater than zero.</span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679025694"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-90"></span><span id="startSequence2"><span class="annot"><span class="annottext">startSequence2 :: i -&gt; Maybe a
+</span><a href="Number.Benford.html#startSequence2"><span class="hs-identifier hs-var hs-var">startSequence2</span></a></span></span><span> </span><span id="local-6989586621679025693"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025693"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025693"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">i -&gt; i -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">i
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">i -&gt; a
+forall i a. (Integral i, Floating a) =&gt; i -&gt; a
+</span><a href="Number.Benford.html#startSequence2%27"><span class="hs-identifier hs-var">startSequence2'</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679025693"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- | Determine the probability of a number in a number system with the given radix, to start with the given sequence of digits.</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- Leading zeros are ignored and the digits are assumed to be valid digits (greater than or equal to zero, and less than the radix).</span><span>
+</span><span id="line-96"></span><span id="local-6989586621679025692"><span class="annot"><a href="Number.Benford.html#startSequence%27"><span class="hs-identifier hs-type">startSequence'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025692"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given radix of the number system, should be greater than one.</span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The given sequence of digits to deterime the probability for. Leading zeros are ignored, the digits should be greater than or equal to zero and less than the radix.</span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679025692"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability of the given digit sequence in a number system with the given radix. Unspecified behavior in case the radix or digits are not valid.</span></span><span>
+</span><span id="line-100"></span><span id="startSequence%27"><span class="annot"><span class="annottext">startSequence' :: Int -&gt; [Int] -&gt; a
+</span><a href="Number.Benford.html#startSequence%27"><span class="hs-identifier hs-var hs-var">startSequence'</span></a></span></span><span> </span><span id="local-6989586621679025691"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025691"><span class="hs-identifier hs-var">radix</span></a></span></span><span> </span><span id="local-6989586621679025690"><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679025690"><span class="hs-identifier hs-var">ns</span></a></span></span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679025689"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Floating a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">logBase</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025691"><span class="hs-identifier hs-var">radix</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679025689"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679025689"><span class="annot"><span class="annottext">d :: Integer
+</span><a href="#local-6989586621679025689"><span class="hs-identifier hs-var hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Int -&gt; Integer) -&gt; Integer -&gt; [Int] -&gt; Integer
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Int -&gt; Integer
+forall a. Integral a =&gt; Integer -&gt; a -&gt; Integer
+</span><a href="#local-6989586621679025688"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Integer
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">[Int]
+</span><a href="#local-6989586621679025690"><span class="hs-identifier hs-var">ns</span></a></span><span>
+</span><span id="line-104"></span><span>          </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679025688"><span class="annot"><span class="annottext">go :: Integer -&gt; a -&gt; Integer
+</span><a href="#local-6989586621679025688"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679025687"><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679025687"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679025686"><span class="hs-identifier hs-var">r</span></a></span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span class="annot"><span class="annottext">Integer
+</span><a href="#local-6989586621679025687"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Integer -&gt; Integer
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Integer) -&gt; (a -&gt; Integer) -&gt; a -&gt; Integer
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span>
+</span><span id="line-105"></span><span>        </span><span id="local-6989586621679025686"><span class="annot"><span class="annottext">r :: Integer
+</span><a href="#local-6989586621679025686"><span class="hs-identifier hs-var hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025691"><span class="hs-identifier hs-var">radix</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integer</span></span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span class="hs-comment">-- | Determine the probability of a number in a number system with the given radix to start with the given sequence of digits, leading zeros are ignored.</span><span>
+</span><span id="line-108"></span><span class="hs-comment">-- The function will return a 'Nothing' in case the radix or the digit sequence is invalid.</span><span>
+</span><span id="line-109"></span><span id="local-6989586621679025683"><span class="annot"><a href="Number.Benford.html#startSequence"><span class="hs-identifier hs-type">startSequence</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Floating</span></span><span> </span><span class="annot"><a href="#local-6989586621679025683"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-110"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given /radix/ of the number system, must be greater than one.</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^  The sequence of digits in the given number system. Leading zeros are ignored, all digits must be greater than or equal to zero, and less than the radix.</span><span>
+</span><span id="line-112"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679025683"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The probability of the given digit sequence in a number system with the given radix wrapped in a 'Just'. 'Nothing' if the given radix or digit sequence is invalid.</span></span><span>
+</span><span id="line-113"></span><span id="startSequence"><span class="annot"><span class="annottext">startSequence :: Int -&gt; [Int] -&gt; Maybe a
+</span><a href="Number.Benford.html#startSequence"><span class="hs-identifier hs-var hs-var">startSequence</span></a></span></span><span> </span><span id="local-6989586621679025682"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025682"><span class="hs-identifier hs-var">radix</span></a></span></span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679025682"><span class="hs-identifier hs-var">radix</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; [Int] -&gt; Maybe a
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Maybe a
+forall p a. p -&gt; Maybe a
+</span><a href="#local-6989586621679025680"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679025680"><span class="annot"><span class="annottext">go :: p -&gt; Maybe a
+</span><a href="#local-6989586621679025680"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">p
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-117"></span><span>
+</span><span id="line-118"></span><span class="hs-comment">{-
+generateBenfordSequence10 :: RandomGen g
+  =&gt; g
+  -&gt; [Int]
+generateBenfordSequence10 = generateBenfordSequence 10
+
+generateBenfordSequence2 :: RandomGen g
+  =&gt; g
+  -&gt; [Int]
+generateBenfordSequence2 = generateBenfordSequence 2
+
+generateBenfordSequence :: (Integral a, Random a, RandomGen g)
+  =&gt; Int
+  -&gt; g
+  -&gt; [a]
+generateBenfordSequence =
+-}</span><span>
+</span><span id="line-135"></span></pre></body></html>
