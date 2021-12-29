@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 {-|
 Module      : Number.Benford
 Description : Determining probabilities and generating sequences according to Benford's law.
@@ -15,11 +17,22 @@ module Number.Benford (
     -- * Probabilities of numbers starting with a sequence of digits
   , startSequence', startSequence2', startSequence10'
   , startSequence, startSequence2, startSequence10
+    -- * Generate sequences based on Benford's law
+  , generateBenfordSequence, generateBenfordSequence2, generateBenfordSequence10
+  , _reverseLookup
   ) where
 
 import Data.Foldable(foldl')
 
--- import System.Random(Random, RandomGen)
+import System.Random(Random, RandomGen)
+
+_baseFunction :: Floating a => Int -> Integer -> a
+_baseFunction _ 0 = 1
+_baseFunction r n = logBase (fromIntegral r) (1 + 1 / fromInteger n)
+
+_baseFunction' :: (Floating a, Integral i) => a -> i -> a
+_baseFunction' _ 0 = 1
+_baseFunction' r n = logBase r (1 + 1 / fromIntegral n)
 
 -- | Determine the probability of the first digit for a /decimal/ system.
 firstDigit10 :: Floating a
@@ -58,9 +71,7 @@ firstDigit' radix digit = logBase (fromIntegral radix) ((d + 1) / d)
 startSequence10' :: (Integral i, Floating a)
   => i  -- ^ The 'Integral' number that contains the start sequence (with an optional sequence of "leading zeros"), should be greater than zero.
   -> a  -- ^ The probability of a number to start with the given start sequence. Unspecified if the number is less than zero.
-startSequence10' 0 = 1
-startSequence10' n = logBase 10 (1 + 1 / n')
-  where n' = fromIntegral n
+startSequence10' = _baseFunction' 10
 
 -- | Determine the probability of the sequence starting with the given digits of a binary number. Binary numbers always start
 -- with @1@. If you thus call @startSequence2' 9@, you get the probability of a binary number starting with @1@, @0@, @0@, and @1@
@@ -68,8 +79,7 @@ startSequence10' n = logBase 10 (1 + 1 / n')
 startSequence2' :: (Integral i, Floating a)
   => i  -- ^ The 'Integral' binary number that contains the binary start sequence (with an optional sequence of "leading zeros"), should be greater than zero.
   -> a  -- ^ The probability of a binary number starting with the givenn binary sequence. Unspecified if the number is less than zero.
-startSequence2' 0 = 1
-startSequence2' n = logBase 2 (1 + 1 / fromIntegral n)
+startSequence2' = _baseFunction' 2
 
 -- | Determine the probability of the sequence starting with the given digits. The leading zeros are ignored. If you
 -- thus call @startSequence10' 1425@, you obtain the probability of a number starting with @1@, @4@, @2@, and @5@ as digits.
@@ -97,9 +107,7 @@ startSequence' :: Floating a
   => Int  -- ^ The given radix of the number system, should be greater than one.
   -> [Int]  -- ^ The given sequence of digits to deterime the probability for. Leading zeros are ignored, the digits should be greater than or equal to zero and less than the radix.
   -> a  -- ^ The probability of the given digit sequence in a number system with the given radix. Unspecified behavior in case the radix or digits are not valid.
-startSequence' radix ns
-  | d == 0 = 1
-  | otherwise = logBase (fromIntegral radix) (1 + 1 / fromIntegral d)
+startSequence' radix ns = _baseFunction radix d
   where d = foldl' go 0 ns
           where go q = (r*q +) . fromIntegral
         r = fromIntegral radix :: Integer
@@ -113,9 +121,26 @@ startSequence :: Floating a
 startSequence radix
   | radix <= 1 = const Nothing
   | otherwise = go
-  where go _ = Nothing
+  where go ns | Just n <- calcSum 0 ns, n >= 0 = Just (_baseFunction radix n)
+              | otherwise = Nothing
+        calcSum !n [] = Just n
+        calcSum !n (x:xs)
+          | x < 0 || x >= radix = Nothing
+          | otherwise = calcSum (r*n + fromIntegral x) xs
+        r = fromIntegral radix :: Integer
 
-{-
+_reverseLookup :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int
+_reverseLookup prob radix mn mx = _reverseLookup' prob radix mn mn mx
+
+_reverseLookup' :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int -> Int
+_reverseLookup' prob radix mn = go
+  where r = fromIntegral radix
+        go min max
+          | max <= min = min
+          | logBase r (fromIntegral (mid+1)/fromIntegral mn) < prob = go (mid+1) max
+          | otherwise = go min mid
+          where mid = div (min + max) 2
+
 generateBenfordSequence10 :: RandomGen g
   => g
   -> [Int]
@@ -130,5 +155,4 @@ generateBenfordSequence :: (Integral a, Random a, RandomGen g)
   => Int
   -> g
   -> [a]
-generateBenfordSequence =
--}
+generateBenfordSequence = undefined
