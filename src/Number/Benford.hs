@@ -20,13 +20,15 @@ module Number.Benford (
     -- * Probabilities of numbers starting with a sequence of digits
   , startSequence', startSequence2', startSequence10'
   , startSequence, startSequence2, startSequence10
+    -- * Reverse cumulative density function
+  , cdfToFirstDigit', cdfToFirstDigit10'
     -- * Generate sequences based on Benford's law
   , generateBenfordSequence, generateBenfordSequence2, generateBenfordSequence10
   ) where
 
 import Data.Foldable(foldl')
 
-import System.Random(Random, RandomGen)
+import System.Random(RandomGen, uniformR)
 
 _baseFunction :: Floating a => Int -> Integer -> a
 _baseFunction _ 0 = 1
@@ -162,11 +164,11 @@ startSequence radix
           | otherwise = calcSum (r*n + fromIntegral x) xs
         r = fromIntegral radix :: Integer
 
-cdfToDigit10' :: (Ord a, Floating a) => a -> Int
-cdfToDigit10' = cdfToDigit' 10
+cdfToFirstDigit10' :: (Ord a, Floating a) => a -> Int
+cdfToFirstDigit10' = cdfToFirstDigit' 10
 
-cdfToDigit' :: (Ord a, Floating a) => Int -> a -> Int
-cdfToDigit' radix cprob = _reverseLookup cprob radix 1 (radix-1)
+cdfToFirstDigit' :: (Ord a, Floating a) => Int -> a -> Int
+cdfToFirstDigit' radix cprob = _reverseLookup cprob radix 1 (radix-1)
 
 _reverseLookup :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int
 _reverseLookup prob radix mn mx = _reverseLookup' prob radix mn mn mx
@@ -174,11 +176,12 @@ _reverseLookup prob radix mn mx = _reverseLookup' prob radix mn mn mx
 _reverseLookup' :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int -> Int
 _reverseLookup' prob radix mn = go
   where r = fromIntegral radix
-        go min max
-          | max <= min = min
-          | logBase r (fromIntegral (mid+1)/fromIntegral mn) < prob = go (mid+1) max
-          | otherwise = go min mid
-          where mid = div (min + max) 2
+        go p0 p2
+          | p2 <= p0 = p0
+          | fromIntegral p1' / fromIntegral mn < r ** prob = go p1' p2
+          | otherwise = go p0 p1
+          where p1 = div (p0 + p2) 2
+                p1' = p1 + 1
 
 generateBenfordSequence10 :: RandomGen g
   => g
@@ -190,8 +193,9 @@ generateBenfordSequence2 :: RandomGen g
   -> [Int]
 generateBenfordSequence2 = generateBenfordSequence 2
 
-generateBenfordSequence :: (Integral a, Random a, RandomGen g)
+generateBenfordSequence :: RandomGen g
   => Int
   -> g
-  -> [a]
-generateBenfordSequence = undefined
+  -> [Int]
+generateBenfordSequence radix = go 1
+    where go q0 g = let ~(p, g') = uniformR (0, 1) g; x =_reverseLookup' (p :: Double) radix q0 q0 (q0+radix-1) in x : go (x*radix) g'
