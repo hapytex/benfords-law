@@ -183,7 +183,7 @@ cdfToFirstDigit' radix cprob = floor (fromIntegral radix ** cprob)
 -- The probability should be greater than or equal to zero, and less than one.
 cdfToFirstDigit10 :: (Ord a, Floating a, RealFrac a)
   => a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
-  -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
+  -> Maybe Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
 cdfToFirstDigit10 = cdfToFirstDigit 10
 
 -- | Determine the digit for a given cumulative probability for a number system with a given radix.
@@ -191,12 +191,12 @@ cdfToFirstDigit10 = cdfToFirstDigit 10
 cdfToFirstDigit :: (Ord a, Floating a, RealFrac a)
   => Int  -- ^ The given /radix/, should be greater than one.
   -> a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
-  -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
+  -> Maybe Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
 cdfToFirstDigit radix
   | radix < 2 = const Nothing
   | otherwise = go
   where go cprob
-          | cprob >= 0.0 && cprob < 1.0 = Just (cdfToFirstDigit radix cprob)
+          | cprob >= 0.0 && cprob < 1.0 = Just (cdfToFirstDigit' radix cprob)
           | otherwise = Nothing
 
 
