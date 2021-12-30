@@ -164,7 +164,10 @@ startSequence radix
           | otherwise = calcSum (r*n + fromIntegral x) xs
         r = fromIntegral radix :: Integer
 
-cdfToFirstDigit10' :: (Ord a, Floating a) => a -> Int
+-- | Determine for the given cumulative probability the corresponding digit for the decimal number system.
+cdfToFirstDigit10' :: (Ord a, Floating a)
+  => a
+  -> Int
 cdfToFirstDigit10' = cdfToFirstDigit' 10
 
 cdfToFirstDigit' :: (Ord a, Floating a) => Int -> a -> Int
