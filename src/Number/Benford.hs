@@ -28,7 +28,7 @@ module Number.Benford (
 
 import Data.Foldable(foldl')
 
-import System.Random(RandomGen, uniformR)
+import System.Random(RandomGen, random, randomRs)
 
 _baseFunction :: Floating a => Int -> Integer -> a
 _baseFunction _ 0 = 1
@@ -166,14 +166,14 @@ startSequence radix
 
 -- | Determine the digit for a given cumulative probability for a decimal number system.
 -- The probability should be greater than or equal to zero, and less than one.
-cdfToFirstDigit10' :: (Ord a, Floating a, RealFrac a)
+cdfToFirstDigit10' :: (Floating a, RealFrac a)
   => a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
   -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability. Unspecified behavior if the radix or cumulative probability are out of range.
 cdfToFirstDigit10' = cdfToFirstDigit' 10
 
 -- | Determine the digit for a given cumulative probability for a number system with a given radix.
 -- The probability should be greater than or equal to zero, and less than one.
-cdfToFirstDigit' :: (Ord a, Floating a, RealFrac a)
+cdfToFirstDigit' :: (Floating a, RealFrac a)
   => Int  -- ^ The given /radix/, should be greater than one.
   -> a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
   -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability. Unspecified behavior if the radix or cumulative probability are out of range.
@@ -199,33 +199,26 @@ cdfToFirstDigit radix
           | cprob >= 0.0 && cprob < 1.0 = Just (cdfToFirstDigit' radix cprob)
           | otherwise = Nothing
 
+nextDigitCdf :: (Floating a, RealFrac a) => Int -> Int -> a -> Int
+nextDigitCdf = undefined
 
-_reverseLookup :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int
-_reverseLookup prob radix mn mx = _reverseLookup' prob radix mn mn mx
-
-_reverseLookup' :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int -> Int
-_reverseLookup' prob radix mn = go
-  where r = fromIntegral radix
-        go p0 p2
-          | p2 <= p0 = p0
-          | fromIntegral p1' / fromIntegral mn < r ** prob = go p1' p2
-          | otherwise = go p0 p1
-          where p1 = div (p0 + p2) 2
-                p1' = p1 + 1
-
-generateBenfordSequence10 :: RandomGen g
+generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
   => g
+  -> a
   -> [Int]
 generateBenfordSequence10 = generateBenfordSequence 10
 
-generateBenfordSequence2 :: RandomGen g
+generateBenfordSequence2 :: (Floating a, Ord a, RandomGen g)
   => g
+  -> a
   -> [Int]
 generateBenfordSequence2 = generateBenfordSequence 2
 
-generateBenfordSequence :: RandomGen g
+generateBenfordSequence :: (Floating a, Ord a, RandomGen g)
   => Int
+  -> a
   -> g
   -> [Int]
-generateBenfordSequence radix = go 1
-    where go q0 g = let ~(p, g') = uniformR (0, 1) g; x =_reverseLookup' (p :: Double) radix q0 q0 (q0+radix-1) in x : go (x*radix) g'
+generateBenfordSequence radix = go 0
+  where go q0 g = let ~(p, g') = random g; x = nextDigitCdf radix q0 (p :: Double) in x : go  g'
+        tl = randomRs (0, radix-1)
