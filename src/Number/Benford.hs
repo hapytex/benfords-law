@@ -179,6 +179,27 @@ cdfToFirstDigit' :: (Ord a, Floating a, RealFrac a)
   -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability. Unspecified behavior if the radix or cumulative probability are out of range.
 cdfToFirstDigit' radix cprob = floor (fromIntegral radix ** cprob)
 
+-- | Determine the digit for a given cumulative probability for a decimal number system.
+-- The probability should be greater than or equal to zero, and less than one.
+cdfToFirstDigit10 :: (Ord a, Floating a, RealFrac a)
+  => a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
+  -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
+cdfToFirstDigit10 = cdfToFirstDigit 10
+
+-- | Determine the digit for a given cumulative probability for a number system with a given radix.
+-- The probability should be greater than or equal to zero, and less than one.
+cdfToFirstDigit :: (Ord a, Floating a, RealFrac a)
+  => Int  -- ^ The given /radix/, should be greater than one.
+  -> a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
+  -> Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
+cdfToFirstDigit radix
+  | radix < 2 = const Nothing
+  | otherwise = go
+  where go cprob
+          | cprob >= 0.0 && cprob < 1.0 = Just (cdfToFirstDigit radix cprob)
+          | otherwise = Nothing
+
+
 _reverseLookup :: (Floating a, Ord a) => a -> Int -> Int -> Int -> Int
 _reverseLookup prob radix mn mx = _reverseLookup' prob radix mn mn mx
 
