@@ -28,7 +28,7 @@ module Number.Benford (
   , cdfToNextDigit', cdfToNextDigit2', cdfToNextDigit10'
     -- * Generate first digits
   , generateFirstDigit, generateFirstDigit', generateFirstDigit10
-    -- * Generate sequences
+    -- * Generate Benford sequences
   , generateBenfordSequence, generateBenfordSequence2, generateBenfordSequence10
   ) where
 
@@ -55,6 +55,12 @@ _firstDigitCheck :: (Int -> Int -> b) -> Int -> Int -> Maybe b
 _firstDigitCheck f radix digit
   | digit < 1 || digit >= radix = Nothing
   | otherwise = Just (f radix digit)
+
+_probabilityCheck :: (Floating a, Ord a) => (Int -> a -> b) -> Int -> a -> Maybe b
+_probabilityCheck f radix cprob
+  | cprob < 0.0 = Nothing
+  | cprob >= 1.0 = Nothing
+  | otherwise = Just (f radix cprob)
 
 -- | Determine the probability of the first digit for a /decimal/ system.
 firstDigit10 :: Floating a
@@ -199,10 +205,7 @@ cdfToFirstDigit :: (Ord a, Floating a, RealFrac a)
   => Int  -- ^ The given /radix/, should be greater than one.
   -> a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
   -> Maybe Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
-cdfToFirstDigit = _radixCheck go
-  where go radix cprob
-          | cprob >= 0.0 && cprob < 1.0 = Just (cdfToFirstDigit' radix cprob)
-          | otherwise = Nothing
+cdfToFirstDigit = _radixCheck (_probabilityCheck cdfToFirstDigit')
 
 -- | A random number generator that generates the first digit according to Benford's law for a decimal number system.
 generateFirstDigit10 :: RandomGen g
