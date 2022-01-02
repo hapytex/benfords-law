@@ -69,6 +69,11 @@ _probabilityCheck f radix cprob
   | cprob >= 1.0 = Nothing
   | otherwise = Just (f radix cprob)
 
+_fromDigits :: Int -> [Int] -> Integer
+_fromDigits radix = foldl' go 0
+  where go q = (r*q +) . fromIntegral
+        r = fromIntegral radix
+
 -- | Determine the probability of the first digit for a /decimal/ system.
 firstDigit10 :: Floating a
   => Int  -- ^ The given digit for which we determine the probability, should be greater than zero and less than 10.
@@ -163,10 +168,7 @@ startSequence' :: Floating a
   => Int  -- ^ The given radix of the number system, should be greater than one.
   -> [Int]  -- ^ The given sequence of digits to deterime the probability for. Leading zeros are ignored, the digits should be greater than or equal to zero and less than the radix.
   -> a  -- ^ The probability of the given digit sequence in a number system with the given radix. Unspecified behavior in case the radix or digits are not valid.
-startSequence' radix ns = _baseFunction radix d
-  where d = foldl' go 0 ns
-          where go q = (r*q +) . fromIntegral
-        r = fromIntegral radix :: Integer
+startSequence' radix = _baseFunction radix . _fromDigits radix
 
 -- | Determine the probability of a number in a number system with the given radix to start with the given sequence of digits, leading zeros are ignored.
 -- The function will return a 'Nothing' in case the radix or the digit sequence is invalid.
@@ -240,13 +242,17 @@ cdfToNextDigit10 prefixSequence probability
   | prefixSequence < 0 = Nothing
   | probability < 0.0 = Nothing
   | probability >= 1.0 = Nothing
-  | otherwise = Just 0
+  | otherwise = Just (cdfToNextDigit10' prefixSequence probability)
 
 cdfToNextDigit2 :: (Floating a, RealFrac a) => Int -> a -> Maybe Int
-cdfToNextDigit2 = cdfToNextDigit2
+cdfToNextDigit2 prefixSequence probability
+  | prefixSequence < 0 = Nothing
+  | probability < 0.0 = Nothing
+  | probability >= 1.0 = Nothing
+  | otherwise = Just (cdfToNextDigit2' prefixSequence probability)
 
 cdfToNextDigit :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Maybe Int
-cdfToNextDigit = cdfToNextDigit
+cdfToNextDigit radix prefixSequence probability = Nothing
 
 cdfToNextDigit10' :: (Floating a, RealFrac a) => Int -> a -> Int
 cdfToNextDigit10' = _baseCdfToNextDigit 10 . (10*)
