@@ -46,6 +46,11 @@ _baseFunction' :: (Floating a, Integral i) => a -> i -> a
 _baseFunction' _ 0 = 1
 _baseFunction' r n = logBase r (1 + 1 / fromIntegral n)
 
+{-
+_baseCdfToNextDigit :: (Floating a, Integral i) => Int -> i -> a -> i
+_baseCdfToNextDigit =
+-}
+
 _radixCheck :: (Int -> a -> Maybe b) -> Int -> a -> Maybe b
 _radixCheck f radix
   | radix > 1 = f radix
@@ -243,7 +248,9 @@ cdfToNextDigit = cdfToNextDigit
 
 
 cdfToNextDigit10' :: (Floating a, RealFrac a) => Int -> a -> Int
-cdfToNextDigit10' prefixSequence = undefined
+cdfToNextDigit10' prefixSequence cprob = floor ((10 ** (scaler * cprob)) * pref)
+  where scaler = logBase 10 ((pref + 10) / pref)
+        pref = fromIntegral prefixSequence
 
 cdfToNextDigit2' :: (Floating a, RealFrac a) => Int -> a -> Int
 cdfToNextDigit2' = cdfToNextDigit2'
