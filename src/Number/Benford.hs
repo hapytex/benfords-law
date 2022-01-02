@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, TypeApplications #-}
 
 {-|
 Module      : Number.Benford
@@ -20,15 +20,23 @@ module Number.Benford (
     -- * Probabilities of numbers starting with a sequence of digits
   , startSequence', startSequence2', startSequence10'
   , startSequence, startSequence2, startSequence10
-    -- * Reverse cumulative density function
+    -- * Reverse cumulative density function for the first digit
+  , cdfToFirstDigit, cdfToFirstDigit10
   , cdfToFirstDigit', cdfToFirstDigit10'
-    -- * Generate sequences based on Benford's law
+    -- * Reverse cumulative density function for the next digits
+  , cdfToNextDigit, cdfToNextDigit2, cdfToNextDigit10
+  , cdfToNextDigit', cdfToNextDigit2', cdfToNextDigit10'
+    -- * Generate first digits
+  , generateFirstDigit, generateFirstDigit', generateFirstDigit10
+    -- * Generate sequences
   , generateBenfordSequence, generateBenfordSequence2, generateBenfordSequence10
   ) where
 
+import Control.Arrow(first)
+
 import Data.Foldable(foldl')
 
-import System.Random(RandomGen, random, randomRs)
+import System.Random(RandomGen, random)
 
 _baseFunction :: Floating a => Int -> Integer -> a
 _baseFunction _ 0 = 1
@@ -37,6 +45,16 @@ _baseFunction r n = logBase (fromIntegral r) (1 + 1 / fromInteger n)
 _baseFunction' :: (Floating a, Integral i) => a -> i -> a
 _baseFunction' _ 0 = 1
 _baseFunction' r n = logBase r (1 + 1 / fromIntegral n)
+
+_radixCheck :: (Int -> a -> Maybe b) -> Int -> a -> Maybe b
+_radixCheck f radix
+  | radix > 1 = f radix
+  | otherwise = const Nothing
+
+_firstDigitCheck :: (Int -> Int -> b) -> Int -> Int -> Maybe b
+_firstDigitCheck f radix digit
+  | digit < 1 || digit >= radix = Nothing
+  | otherwise = Just (f radix digit)
 
 -- | Determine the probability of the first digit for a /decimal/ system.
 firstDigit10 :: Floating a
@@ -49,12 +67,7 @@ firstDigit :: Floating a
   => Int  -- ^ The given radix, should be greater than or equal to two.
   -> Int  -- ^ The given digit to determine the probability. Should be greater than zero and less than the radix.
   -> Maybe a  -- ^ The probability for the given digit to be the first digit in a number system with the given radix wrapped in a 'Just'; 'Nothing' if the radix or digit are invalid.
-firstDigit radix
-  | radix < 2 = const Nothing
-  | otherwise = go
-  where go digit
-          | digit < 1 || digit >= radix = Nothing
-          | otherwise = Just (firstDigit' radix digit)
+firstDigit radix = _radixCheck (_firstDigitCheck firstDigit') radix
 
 -- | Determine the probability of the first digit in a /decimal/ system.
 firstDigit10' :: Floating a
@@ -94,12 +107,7 @@ firstDigitCdf :: Floating a
   => Int  -- ^ The given radix of the number system for which we determine the first digit.
   -> Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than the radix.
   -> Maybe a  -- ^ The probability of the digit being less than or equal to the given value wrapped in a 'Just'. If the radix or the digit is invalid, 'Nothing' is returned.
-firstDigitCdf radix
-  | radix < 2 = const Nothing
-  | otherwise = go
-  where go digit
-          | digit <= 0 || digit >= radix = Nothing
-          | otherwise = Just (firstDigitCdf' radix digit)
+firstDigitCdf = _radixCheck (_firstDigitCheck firstDigitCdf')
 
 -- | Determine the probability of the sequence starting with the given digits. The leading zeros are ignored. If you
 -- thus call @startSequence10' 1425@, you obtain the probability of a number starting with @1@, @4@, @2@, and @5@ as digits.
@@ -153,16 +161,15 @@ startSequence :: Floating a
   => Int  -- ^ The given /radix/ of the number system, must be greater than one.
   -> [Int]  -- ^  The sequence of digits in the given number system. Leading zeros are ignored, all digits must be greater than or equal to zero, and less than the radix.
   -> Maybe a  -- ^ The probability of the given digit sequence in a number system with the given radix wrapped in a 'Just'. 'Nothing' if the given radix or digit sequence is invalid.
-startSequence radix
-  | radix <= 1 = const Nothing
-  | otherwise = go
-  where go ns | Just n <- calcSum 0 ns, n >= 0 = Just (_baseFunction radix n)
-              | otherwise = Nothing
-        calcSum !n [] = Just n
-        calcSum !n (x:xs)
-          | x < 0 || x >= radix = Nothing
-          | otherwise = calcSum (r*n + fromIntegral x) xs
-        r = fromIntegral radix :: Integer
+startSequence = _radixCheck go
+  where go radix ns
+          | Just n <- calcSum 0 ns, n >= 0 = Just (_baseFunction radix n)
+          | otherwise = Nothing
+          where calcSum !n [] = Just n
+                calcSum !n (x:xs)
+                  | x < 0 || x >= radix = Nothing
+                  | otherwise = calcSum (r*n + fromIntegral x) xs
+                r = fromIntegral radix :: Integer
 
 -- | Determine the digit for a given cumulative probability for a decimal number system.
 -- The probability should be greater than or equal to zero, and less than one.
@@ -192,25 +199,64 @@ cdfToFirstDigit :: (Ord a, Floating a, RealFrac a)
   => Int  -- ^ The given /radix/, should be greater than one.
   -> a  -- ^ The given /cumulative probability/, should be greater than or equal to zero, and less than one.
   -> Maybe Int  -- ^ The smallest digit for which the cumulative probability is less than the given probability wrapped in a 'Just'. 'Nothing' if the radix or cumulative probability are out of range.
-cdfToFirstDigit radix
-  | radix < 2 = const Nothing
-  | otherwise = go
-  where go cprob
+cdfToFirstDigit = _radixCheck go
+  where go radix cprob
           | cprob >= 0.0 && cprob < 1.0 = Just (cdfToFirstDigit' radix cprob)
           | otherwise = Nothing
 
-nextDigitCdf :: (Floating a, RealFrac a) => Int -> Int -> a -> Int
-nextDigitCdf = undefined
+-- | A random number generator that generates the first digit according to Benford's law for a decimal number system.
+generateFirstDigit10 :: RandomGen g
+  => g  -- ^ The random number generator.
+  -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
+generateFirstDigit10 = generateFirstDigit' 10
+
+-- | A random number generator that generates the first digit according to Benford's law for a number system with a given radix.
+generateFirstDigit' :: RandomGen g
+  => Int  -- ^ The radix of the given number system, should be greater than one.
+  -> g  -- ^ The random number generator.
+  -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
+generateFirstDigit' radix = first (min (radix-1) . cdfToFirstDigit' @Double radix) . random
+
+-- | A conditional random generator that generates the first digit according to Benford's law for a number system with a given radix.
+generateFirstDigit :: RandomGen g
+  => Int  -- ^ The radix of the given number system, should be greater than one.
+  -> Maybe (g -> (Int, g))  -- ^ A generator for the first digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
+generateFirstDigit radix
+  | radix > 1 = Just (generateFirstDigit' radix)
+  | otherwise = Nothing
+
+cdfToNextDigit10 :: (Floating a, RealFrac a) => Int -> a -> Maybe Int
+cdfToNextDigit10 prefixSequence probability
+  | prefixSequence < 0 = Nothing
+  | probability < 0.0 = Nothing
+  | probability >= 1.0 = Nothing
+  | otherwise = Just 0
+
+cdfToNextDigit2 :: (Floating a, RealFrac a) => Int -> a -> Maybe Int
+cdfToNextDigit2 = cdfToNextDigit2
+
+cdfToNextDigit :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Maybe Int
+cdfToNextDigit = cdfToNextDigit
+
+
+cdfToNextDigit10' :: (Floating a, RealFrac a) => Int -> a -> Int
+cdfToNextDigit10' prefixSequence = undefined
+
+cdfToNextDigit2' :: (Floating a, RealFrac a) => Int -> a -> Int
+cdfToNextDigit2' = cdfToNextDigit2'
+
+cdfToNextDigit' :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Int
+cdfToNextDigit' = cdfToNextDigit'
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
-  => g
-  -> a
+  => a
+  -> g
   -> [Int]
 generateBenfordSequence10 = generateBenfordSequence 10
 
 generateBenfordSequence2 :: (Floating a, Ord a, RandomGen g)
-  => g
-  -> a
+  => a
+  -> g
   -> [Int]
 generateBenfordSequence2 = generateBenfordSequence 2
 
@@ -220,5 +266,6 @@ generateBenfordSequence :: (Floating a, Ord a, RandomGen g)
   -> g
   -> [Int]
 generateBenfordSequence radix = go 0
-  where go q0 g = let ~(p, g') = random g; x = nextDigitCdf radix q0 (p :: Double) in x : go  g'
-        tl = randomRs (0, radix-1)
+  where go q0 g = go q0 g
+        -- let ~(p, g') = random g; x = nextDigitCdf radix q0 (p :: Double) in x : go  g'
+--         tl = randomRs (0, radix-1)
