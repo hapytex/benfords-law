@@ -46,10 +46,12 @@ _baseFunction' :: (Floating a, Integral i) => a -> i -> a
 _baseFunction' _ 0 = 1
 _baseFunction' r n = logBase r (1 + 1 / fromIntegral n)
 
-{-
-_baseCdfToNextDigit :: (Floating a, Integral i) => Int -> i -> a -> i
-_baseCdfToNextDigit =
--}
+
+_baseCdfToNextDigit :: (Floating a, RealFrac a, Integral i) => Int -> i -> a -> i
+_baseCdfToNextDigit radix prefixSequence cprob = floor (fromIntegral r ** (scaler * cprob) * pref)
+  where scaler = logBase (fromIntegral radix) ((fromIntegral prefixSequence + fromIntegral r) / pref)
+        pref = fromIntegral (max 1 prefixSequence)
+        r = fromIntegral radix
 
 _radixCheck :: (Int -> a -> Maybe b) -> Int -> a -> Maybe b
 _radixCheck f radix
@@ -246,17 +248,14 @@ cdfToNextDigit2 = cdfToNextDigit2
 cdfToNextDigit :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Maybe Int
 cdfToNextDigit = cdfToNextDigit
 
-
 cdfToNextDigit10' :: (Floating a, RealFrac a) => Int -> a -> Int
-cdfToNextDigit10' prefixSequence cprob = floor ((10 ** (scaler * cprob)) * pref)
-  where scaler = logBase 10 ((pref + 10) / pref)
-        pref = fromIntegral prefixSequence
+cdfToNextDigit10' = _baseCdfToNextDigit 10 . (10*)
 
 cdfToNextDigit2' :: (Floating a, RealFrac a) => Int -> a -> Int
-cdfToNextDigit2' = cdfToNextDigit2'
+cdfToNextDigit2' = _baseCdfToNextDigit 2 . (2*)
 
 cdfToNextDigit' :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Int
-cdfToNextDigit' = cdfToNextDigit'
+cdfToNextDigit' radix ns = _baseCdfToNextDigit radix 0
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
   => a
