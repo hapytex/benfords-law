@@ -28,6 +28,8 @@ module Number.Benford (
   , cdfToNextDigit', cdfToNextDigit2', cdfToNextDigit10'
     -- * Generate first digits
   , generateFirstDigit, generateFirstDigit', generateFirstDigit10
+    -- * Generate the next digits
+  , generateNextDigit, generateNextDigit', generateNextDigit2, generateNextDigit10
     -- * Generate Benford sequences
   , generateBenfordSequence, generateBenfordSequence2, generateBenfordSequence10
   ) where
@@ -36,7 +38,14 @@ import Control.Arrow(first)
 
 import Data.Foldable(foldl')
 
-import System.Random(RandomGen, random)
+import System.Random(Random, RandomGen, random)
+
+_generatorMapping :: (RandomGen g, Random a)
+  => (a -> b)
+  -> g
+  -> (b, g)
+_generatorMapping f = go
+  where go = first f . random
 
 _baseFunction :: Floating a => Int -> Integer -> a
 _baseFunction _ 0 = 1
@@ -109,29 +118,29 @@ firstDigit' :: Floating a
 firstDigit' radix digit = logBase (fromIntegral radix) ((d + 1) / d)
     where d = fromIntegral digit
 
--- | Determine the /cummulative distribution function/ for the first digit in a decimal number system.
+-- | Determine the /cumulative distribution function/ for the first digit in a decimal number system.
 firstDigitCdf10' :: Floating a
-  => Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than ten.
+  => Int  -- ^ The first digit for which we determine the cumulative distribution function, the digit should be greater than zero and less than ten.
   -> a  -- ^ The probability of the digit being less than or equal to the given value. For invalid parameters, this is unspecified behavior.
 firstDigitCdf10' = firstDigitCdf' 10
 
--- | Determine the /cummulative distribution function/ for the first digit in a number system with the given radix.
+-- | Determine the /cumulative distribution function/ for the first digit in a number system with the given radix.
 firstDigitCdf' :: Floating a
   => Int  -- ^ The given radix of the number system for which we determine the first digit.
-  -> Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than the radix.
+  -> Int  -- ^ The first digit for which we determine the cumulative distribution function, the digit should be greater than zero and less than the radix.
   -> a  -- ^ The probability of the digit being less than or equal to the given value. For invalid parameters, this is unspecified behavior.
 firstDigitCdf' radix digit = logBase (fromIntegral radix) (fromIntegral (digit+1))
 
--- | Determine the /cummulative distribution function/ for the first digit in a decimal number system.
+-- | Determine the /cumulative distribution function/ for the first digit in a decimal number system.
 firstDigitCdf10 :: Floating a
-  => Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than ten.
+  => Int  -- ^ The first digit for which we determine the cumulative distribution function, the digit should be greater than zero and less than ten.
   -> Maybe a  -- ^ The probability of the digit being less than or equal to the given value wrapped in a 'Just'. If the digit is invalid, 'Nothing' is returned.
 firstDigitCdf10 = firstDigitCdf 10
 
--- | Determine the /cummulative distribution function/ for the first digit in a number system with the given radix.
+-- | Determine the /cumulative distribution function/ for the first digit in a number system with the given radix.
 firstDigitCdf :: Floating a
   => Int  -- ^ The given radix of the number system for which we determine the first digit.
-  -> Int  -- ^ The first digit for which we determine the cummulative distribution function, the digit should be greater than zero and less than the radix.
+  -> Int  -- ^ The first digit for which we determine the cumulative distribution function, the digit should be greater than zero and less than the radix.
   -> Maybe a  -- ^ The probability of the digit being less than or equal to the given value wrapped in a 'Just'. If the radix or the digit is invalid, 'Nothing' is returned.
 firstDigitCdf = _radixCheck (_firstDigitCheck firstDigitCdf')
 
@@ -165,7 +174,7 @@ startSequence10 n
 -- as binary digits. The result is wrapped in a 'Just'; if the value is less than zero, 'Nothing' is returned.
 startSequence2 :: (Integral i, Floating a)
   => i  -- ^ The 'Integral' binary number that contains the binary start sequence (with an optional sequence of "leading zeros"), should be greater than zero.
-  -> Maybe a
+  -> Maybe a  -- ^ The probability of a Benford number to start with the given digit wrapped in a 'Just'; 'Nothing' if the given binary number is out of range.
 startSequence2 n
   | n >= 0 = Just (startSequence2' n)
   | otherwise = Nothing
@@ -230,41 +239,105 @@ generateFirstDigit' :: RandomGen g
   => Int  -- ^ The radix of the given number system, should be greater than one.
   -> g  -- ^ The random number generator.
   -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
-generateFirstDigit' radix = first (min (radix-1) . cdfToFirstDigit' @Double radix) . random
+generateFirstDigit' radix = _generatorMapping (min (radix-1) . cdfToFirstDigit' @Double radix)
 
 -- | A conditional random generator that generates the first digit according to Benford's law for a number system with a given radix.
 generateFirstDigit :: RandomGen g
   => Int  -- ^ The radix of the given number system, should be greater than one.
-  -> Maybe (g -> (Int, g))  -- ^ A generator for the first digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
+  -> g  -- ^ The random number generator that is used to generate the first digit.
+  -> Maybe (Int, g)  -- ^ A generator for the first digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
 generateFirstDigit radix
-  | radix > 1 = Just (generateFirstDigit' radix)
-  | otherwise = Nothing
+  | radix > 1 = Just . generateFirstDigit' radix
+  | otherwise = const Nothing
 
-cdfToNextDigit10 :: (Floating a, RealFrac a) => Int -> a -> Maybe Int
+-- | Convert a given cumulative probability to the corresponding digit after the given prefix for the decimal number system.
+cdfToNextDigit10 :: (Floating a, RealFrac a)
+  => Int  -- ^ The given /prefix/, leading zeros are ignored. If the prefix is @31@, we thus detrmine the digit after @3@ and @1@. The prefix should be greater than or equal to zero.
+  -> a  -- ^ The given cumulative probability to map on a digit for a decimal number system; should be greater than or equal to zero, and less than one.
+  -> Maybe Int  -- ^ The corresponding digit for the given prefix and cumulative probability wrapped in a 'Just'; 'Nothing' if the prefix or the cumulative probability are invalid.
 cdfToNextDigit10 prefixSequence probability
   | prefixSequence < 0 = Nothing
   | probability < 0.0 = Nothing
   | probability >= 1.0 = Nothing
   | otherwise = Just (cdfToNextDigit10' prefixSequence probability)
 
-cdfToNextDigit2 :: (Floating a, RealFrac a) => Int -> a -> Maybe Int
+-- | Convert a given cumulative probability to the corresponding digit after the given prefix for the binary number system.
+cdfToNextDigit2 :: (Floating a, RealFrac a)
+  => Int  -- ^ The given /prefix/, leading zeros are ignored. If the prefix is @9@, we thus detrmine the digit after @1@, @0@, @0@ and @1@. The prefix should be greater than or equal to zero.
+  -> a  -- ^ The given cumulative probability to map on a digit for a binary number system; should be greater than or equal to zero, and less than one.
+  -> Maybe Int  -- ^ The corresponding digit for the given prefix and cumulative probability wrapped in a 'Just'; 'Nothing' if the prefix or the cumulative probability are invalid.
 cdfToNextDigit2 prefixSequence probability
   | prefixSequence < 0 = Nothing
   | probability < 0.0 = Nothing
   | probability >= 1.0 = Nothing
   | otherwise = Just (cdfToNextDigit2' prefixSequence probability)
 
-cdfToNextDigit :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Maybe Int
-cdfToNextDigit radix prefixSequence probability = Nothing
+-- | Convert a given cumulative probability to the corresponding digit after the given prefix of digits for a number system with a given radix.
+cdfToNextDigit :: (Floating a, RealFrac a)
+  => Int  -- ^ The given radix of the number system, should be greater than one.
+  -> [Int]  -- ^ The list of prefix digits, leading zeros are ignored, the digits should all be greater than or equal to zero, and less than the radix.
+  -> a  -- ^ The given cumulative probability to map on a digit for a number system with the given radix; should be greater than or equal to zero, and less than one.
+  -> Maybe Int  -- ^ The corresponding digit wrapped in a 'Just'; 'Nothing' if the given values are out of range.
+cdfToNextDigit radix prefixSequence probability
+  | radix <= 1 = Nothing
+  | probability < 0.0 = Nothing
+  | probability >= 1.0 = Nothing
+  | Just pre <- _fromDigits' radix prefixSequence = Just (_baseCdfToNextDigit radix (fromInteger pre * radix) probability `mod` radix)
+  | otherwise = Nothing
 
-cdfToNextDigit10' :: (Floating a, RealFrac a) => Int -> a -> Int
-cdfToNextDigit10' = _baseCdfToNextDigit 10 . (10*)
+-- | Determine the corresponding digit for a given prefix and a given cumulative probability for a decimal number system.
+cdfToNextDigit10' :: (Floating a, RealFrac a)
+  => Int  -- ^ The given prefix. If the value is @31@, then we thus determine the digit after @3@ and @1@. This value must be gereater than or equal to zero.
+  -> a  -- ^ The given cumulative probability for which we want to retrieve the digit. Should be greater than or equal to zero and less than one.
+  -> Int  -- ^ The corresponding digit for the given prefix and cumulative probability. Unspecified behavior if the given values are out of range.
+cdfToNextDigit10' prefix = (`mod` 10) . _baseCdfToNextDigit 10 (10*prefix)
 
-cdfToNextDigit2' :: (Floating a, RealFrac a) => Int -> a -> Int
-cdfToNextDigit2' = _baseCdfToNextDigit 2 . (2*)
+-- | Determine the corresponding digit for a given prefix and a given cumulative probability for a binary system.
+cdfToNextDigit2' :: (Floating a, RealFrac a)
+  => Int  -- ^ The given prefix. If the value is @9@, then we thus determine the digit after @1@, @0@, @0@ and @1@. This value must be greater than or equal to zero.
+  -> a  -- ^ The given cumulative probability for which we want to retrieve the digit. Should be greater than or equal to zero and less than one.
+  -> Int  -- ^ The corresponding digit for the given prefix and cumulative probability. Unspecified behavior if the given values are out of range.
+cdfToNextDigit2' prefix = (`mod` 2) . _baseCdfToNextDigit 2 (2*prefix)
 
-cdfToNextDigit' :: (Floating a, RealFrac a) => Int -> [Int] -> a -> Int
-cdfToNextDigit' radix ns = _baseCdfToNextDigit radix 0
+-- | Determine the corresponding digit for a given prefix and a given cumulative probability for a number system with a given radix.
+cdfToNextDigit' :: (Floating a, RealFrac a)
+  => Int  -- ^ The given radix, should be greater than one.
+  -> [Int]  -- ^ The list of prefix digits. Leading zeros are ignored and all digits should be greater than or equal to zero and less than the given radix.
+  -> a  -- ^ The cumulative probability, should be greater than or equal to zero and less than one.
+  -> Int  -- ^ The corresponding digit for the given radix prefix and cumulative probability. Unspecified behavior if the given values are out of range.
+cdfToNextDigit' radix ns = (`mod` radix) . _baseCdfToNextDigit radix (fromInteger (_fromDigits radix ns) * radix)
+
+-- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a decimal number system.
+generateNextDigit10 :: (RandomGen g, Integral i)
+  => g  -- ^ The random number generator.
+  -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
+  -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
+generateNextDigit10 = generateNextDigit' 10
+
+-- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a decimal number system.
+generateNextDigit2 :: (RandomGen g, Integral i)
+  => g  -- ^ The random number generator.
+  -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
+  -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
+generateNextDigit2 = generateNextDigit' 2
+
+-- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
+generateNextDigit' :: (RandomGen g, Integral i)
+  => Int  -- ^ The radix of the given number system, should be greater than one.
+  -> g  -- ^ The random number generator.
+  -> i  -- ^ The given prefix, for @31@ for example, we generate a digit according to the Benford distribution after the @3@ and @1@ digits.
+  -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
+generateNextDigit' radix prefix = _generatorMapping (min (radix-1) . cdfToNextDigit' @Double radix prefix)
+
+-- | A conditional random generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
+generateNextDigit :: RandomGen g
+  => Int  -- ^ The radix of the given number system, should be greater than one.
+  -> [Int]  -- ^ The prefix of the given sequence that is used to determine the next digit.
+  -> g  -- ^ The random number generator.
+  -> Maybe (Int, g)  -- ^ A generator for the next digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
+generateNextDigit radix prefix
+  | radix > 1, Just n <- _fromDigits' radix prefix = Just . generateNextDigit' radix n
+  | otherwise = const Nothing
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
   => a
