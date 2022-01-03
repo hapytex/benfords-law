@@ -256,10 +256,8 @@ cdfToNextDigit10 :: (Floating a, RealFrac a)
   -> a  -- ^ The given cumulative probability to map on a digit for a decimal number system; should be greater than or equal to zero, and less than one.
   -> Maybe Int  -- ^ The corresponding digit for the given prefix and cumulative probability wrapped in a 'Just'; 'Nothing' if the prefix or the cumulative probability are invalid.
 cdfToNextDigit10 prefixSequence probability
-  | prefixSequence < 0 = Nothing
-  | probability < 0.0 = Nothing
-  | probability >= 1.0 = Nothing
-  | otherwise = Just (cdfToNextDigit10' prefixSequence probability)
+  | prefixSequence >= 0, probability >= 0.0, probability < 1.0 = Just (cdfToNextDigit10' prefixSequence probability)
+  | otherwise = Nothing
 
 -- | Convert a given cumulative probability to the corresponding digit after the given prefix for the binary number system.
 cdfToNextDigit2 :: (Floating a, RealFrac a)
@@ -267,10 +265,8 @@ cdfToNextDigit2 :: (Floating a, RealFrac a)
   -> a  -- ^ The given cumulative probability to map on a digit for a binary number system; should be greater than or equal to zero, and less than one.
   -> Maybe Int  -- ^ The corresponding digit for the given prefix and cumulative probability wrapped in a 'Just'; 'Nothing' if the prefix or the cumulative probability are invalid.
 cdfToNextDigit2 prefixSequence probability
-  | prefixSequence < 0 = Nothing
-  | probability < 0.0 = Nothing
-  | probability >= 1.0 = Nothing
-  | otherwise = Just (cdfToNextDigit2' prefixSequence probability)
+  | prefixSequence >= 0, probability >= 0.0, probability < 1.0 = Just (cdfToNextDigit2' prefixSequence probability)
+  | otherwise = Nothing
 
 -- | Convert a given cumulative probability to the corresponding digit after the given prefix of digits for a number system with a given radix.
 cdfToNextDigit :: (Floating a, RealFrac a)
@@ -279,10 +275,7 @@ cdfToNextDigit :: (Floating a, RealFrac a)
   -> a  -- ^ The given cumulative probability to map on a digit for a number system with the given radix; should be greater than or equal to zero, and less than one.
   -> Maybe Int  -- ^ The corresponding digit wrapped in a 'Just'; 'Nothing' if the given values are out of range.
 cdfToNextDigit radix prefixSequence probability
-  | radix <= 1 = Nothing
-  | probability < 0.0 = Nothing
-  | probability >= 1.0 = Nothing
-  | Just pre <- _fromDigits' radix prefixSequence = Just (_baseCdfToNextDigit radix (fromInteger pre * radix) probability `mod` radix)
+  | radix > 1, probability >= 0.0, probability < 1.0, Just pre <- _fromDigits' radix prefixSequence = Just (_baseCdfToNextDigit radix (fromInteger pre * radix) probability `mod` radix)
   | otherwise = Nothing
 
 -- | Determine the corresponding digit for a given prefix and a given cumulative probability for a decimal number system.
@@ -327,7 +320,7 @@ generateNextDigit' :: (RandomGen g, Integral i)
   -> g  -- ^ The random number generator.
   -> i  -- ^ The given prefix, for @31@ for example, we generate a digit according to the Benford distribution after the @3@ and @1@ digits.
   -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
-generateNextDigit' radix prefix = _generatorMapping (min (radix-1) . cdfToNextDigit' @Double radix prefix)
+generateNextDigit' radix prefix = undefined -- _generatorMapping (min (radix-1) . cdfToNextDigit' @Double radix prefix)
 
 -- | A conditional random generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
 generateNextDigit :: RandomGen g
@@ -336,7 +329,7 @@ generateNextDigit :: RandomGen g
   -> g  -- ^ The random number generator.
   -> Maybe (Int, g)  -- ^ A generator for the next digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
 generateNextDigit radix prefix
-  | radix > 1, Just n <- _fromDigits' radix prefix = Just . generateNextDigit' radix n
+  | radix > 1, Just n <- _fromDigits' radix prefix = undefined  -- Just . generateNextDigit' radix n
   | otherwise = const Nothing
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
