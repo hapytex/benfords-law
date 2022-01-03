@@ -48,8 +48,8 @@ _baseFunction' r n = logBase r (1 + 1 / fromIntegral n)
 
 
 _baseCdfToNextDigit :: (Floating a, RealFrac a, Integral i) => Int -> i -> a -> i
-_baseCdfToNextDigit radix prefixSequence cprob = floor (fromIntegral r ** (scaler * cprob) * pref)
-  where scaler = logBase (fromIntegral radix) ((fromIntegral prefixSequence + fromIntegral r) / pref)
+_baseCdfToNextDigit radix prefixSequence cprob = floor (r ** (scaler * cprob) * pref)
+  where scaler = logBase (fromIntegral radix) ((fromIntegral prefixSequence + r) / pref)
         pref = fromIntegral (max 1 prefixSequence)
         r = fromIntegral radix
 
@@ -73,6 +73,14 @@ _fromDigits :: Int -> [Int] -> Integer
 _fromDigits radix = foldl' go 0
   where go q = (r*q +) . fromIntegral
         r = fromIntegral radix
+
+_fromDigits' :: Int -> [Int] -> Maybe Integer
+_fromDigits' radix = go 0
+  where r = fromIntegral radix
+        go !n [] = Just n
+        go !n (x:xs)
+          | x < 0 || x >= radix = Nothing
+          | otherwise = go (r*n + fromIntegral x) xs
 
 -- | Determine the probability of the first digit for a /decimal/ system.
 firstDigit10 :: Floating a
@@ -178,13 +186,8 @@ startSequence :: Floating a
   -> Maybe a  -- ^ The probability of the given digit sequence in a number system with the given radix wrapped in a 'Just'. 'Nothing' if the given radix or digit sequence is invalid.
 startSequence = _radixCheck go
   where go radix ns
-          | Just n <- calcSum 0 ns, n >= 0 = Just (_baseFunction radix n)
+          | Just n <- _fromDigits' radix ns, n >= 0 = Just (_baseFunction radix n)
           | otherwise = Nothing
-          where calcSum !n [] = Just n
-                calcSum !n (x:xs)
-                  | x < 0 || x >= radix = Nothing
-                  | otherwise = calcSum (r*n + fromIntegral x) xs
-                r = fromIntegral radix :: Integer
 
 -- | Determine the digit for a given cumulative probability for a decimal number system.
 -- The probability should be greater than or equal to zero, and less than one.
