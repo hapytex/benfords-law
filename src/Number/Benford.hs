@@ -37,6 +37,7 @@ module Number.Benford (
 import Control.Arrow(first)
 
 import Data.Foldable(foldl')
+import Data.Ratio(numerator, denominator)
 
 import System.Random(Random, RandomGen, random)
 
@@ -57,10 +58,11 @@ _baseFunction' r n = logBase r (1 + 1 / fromIntegral n)
 
 
 _baseCdfToNextDigit :: (Floating a, RealFrac a, Integral i) => Int -> i -> a -> i
-_baseCdfToNextDigit radix prefixSequence cprob = floor (r ** (scaler * cprob) * pref)
+_baseCdfToNextDigit radix prefixSequence cprob = fromInteger (div (fromIntegral prefixSequence * numerator logs) (denominator logs) `mod` fromIntegral radix)
   where scaler = logBase (fromIntegral radix) ((fromIntegral prefixSequence + r) / pref)
         pref = fromIntegral (max 1 prefixSequence)
         r = fromIntegral radix
+        logs = toRational (r ** (scaler * cprob))
 
 _radixCheck :: (Int -> a -> Maybe b) -> Int -> a -> Maybe b
 _radixCheck f radix
@@ -102,7 +104,7 @@ firstDigit :: Floating a
   => Int  -- ^ The given radix, should be greater than or equal to two.
   -> Int  -- ^ The given digit to determine the probability. Should be greater than zero and less than the radix.
   -> Maybe a  -- ^ The probability for the given digit to be the first digit in a number system with the given radix wrapped in a 'Just'; 'Nothing' if the radix or digit are invalid.
-firstDigit radix = _radixCheck (_firstDigitCheck firstDigit') radix
+firstDigit = _radixCheck (_firstDigitCheck firstDigit')
 
 -- | Determine the probability of the first digit in a /decimal/ system.
 firstDigit10' :: Floating a
@@ -312,25 +314,25 @@ generateNextDigit2 :: (RandomGen g, Integral i)
   => g  -- ^ The random number generator.
   -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
   -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
-generateNextDigit2 = generateNextDigit' 2
+generateNextDigit2 = _generatorMapping (cdfToNextDigit' @Double 2)
 
 -- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
-generateNextDigit' :: (RandomGen g, Integral i)
+generateNextDigit' :: RandomGen g
   => Int  -- ^ The radix of the given number system, should be greater than one.
   -> g  -- ^ The random number generator.
-  -> i  -- ^ The given prefix, for @31@ for example, we generate a digit according to the Benford distribution after the @3@ and @1@ digits.
+  -> [Int]  -- ^ The given prefix, for @31@ for example, we generate a digit according to the Benford distribution after the @3@ and @1@ digits.
   -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
-generateNextDigit' radix prefix = undefined -- _generatorMapping (min (radix-1) . cdfToNextDigit' @Double radix prefix)
+generateNextDigit' radix prefix = _generatorMapping (cdfToNextDigit' @Double radix prefix)
 
 -- | A conditional random generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
 generateNextDigit :: RandomGen g
   => Int  -- ^ The radix of the given number system, should be greater than one.
-  -> [Int]  -- ^ The prefix of the given sequence that is used to determine the next digit.
   -> g  -- ^ The random number generator.
+  -> [Int]  -- ^ The prefix of the given sequence that is used to determine the next digit.
   -> Maybe (Int, g)  -- ^ A generator for the next digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
-generateNextDigit radix prefix
-  | radix > 1, Just n <- _fromDigits' radix prefix = undefined  -- Just . generateNextDigit' radix n
-  | otherwise = const Nothing
+generateNextDigit radix gen prefix
+  | radix > 1 = generateNextDigit' radix gen <$> _fromDigits' radix prefix
+  | otherwise = Nothing
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
   => a
@@ -350,6 +352,6 @@ generateBenfordSequence :: (Floating a, Ord a, RandomGen g)
   -> g
   -> [Int]
 generateBenfordSequence radix = go 0
-  where go q0 g = go q0 g
+  where go = go
         -- let ~(p, g') = random g; x = nextDigitCdf radix q0 (p :: Double) in x : go  g'
 --         tl = randomRs (0, radix-1)
