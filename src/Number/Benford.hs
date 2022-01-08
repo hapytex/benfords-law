@@ -36,6 +36,7 @@ module Number.Benford (
 
 import Control.Arrow(first)
 
+import Data.Bits((.&.))
 import Data.Foldable(foldl')
 import Data.Ratio(numerator, denominator)
 
@@ -281,18 +282,18 @@ cdfToNextDigit radix prefixSequence probability
   | otherwise = Nothing
 
 -- | Determine the corresponding digit for a given prefix and a given cumulative probability for a decimal number system.
-cdfToNextDigit10' :: (Floating a, RealFrac a)
-  => Int  -- ^ The given prefix. If the value is @31@, then we thus determine the digit after @3@ and @1@. This value must be gereater than or equal to zero.
+cdfToNextDigit10' :: (Floating a, RealFrac a, Integral i)
+  => i  -- ^ The given prefix. If the value is @31@, then we thus determine the digit after @3@ and @1@. This value must be gereater than or equal to zero.
   -> a  -- ^ The given cumulative probability for which we want to retrieve the digit. Should be greater than or equal to zero and less than one.
   -> Int  -- ^ The corresponding digit for the given prefix and cumulative probability. Unspecified behavior if the given values are out of range.
-cdfToNextDigit10' prefix = (`mod` 10) . _baseCdfToNextDigit 10 (10*prefix)
+cdfToNextDigit10' prefix = fromIntegral . (`mod` 10) . _baseCdfToNextDigit 10 (10*prefix)
 
 -- | Determine the corresponding digit for a given prefix and a given cumulative probability for a binary system.
-cdfToNextDigit2' :: (Floating a, RealFrac a)
-  => Int  -- ^ The given prefix. If the value is @9@, then we thus determine the digit after @1@, @0@, @0@ and @1@. This value must be greater than or equal to zero.
+cdfToNextDigit2' :: (Floating a, RealFrac a, Integral i)
+  => i  -- ^ The given prefix. If the value is @9@, then we thus determine the digit after @1@, @0@, @0@ and @1@. This value must be greater than or equal to zero.
   -> a  -- ^ The given cumulative probability for which we want to retrieve the digit. Should be greater than or equal to zero and less than one.
   -> Int  -- ^ The corresponding digit for the given prefix and cumulative probability. Unspecified behavior if the given values are out of range.
-cdfToNextDigit2' prefix = (`mod` 2) . _baseCdfToNextDigit 2 (2*prefix)
+cdfToNextDigit2' prefix = fromIntegral . (1 .&.) . _baseCdfToNextDigit 2 (2*prefix)
 
 -- | Determine the corresponding digit for a given prefix and a given cumulative probability for a number system with a given radix.
 cdfToNextDigit' :: (Floating a, RealFrac a)
@@ -307,14 +308,14 @@ generateNextDigit10 :: (RandomGen g, Integral i)
   => g  -- ^ The random number generator.
   -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
   -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
-generateNextDigit10 = generateNextDigit' 10
+generateNextDigit10 = flip (_generatorMapping . cdfToNextDigit10')
 
 -- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a decimal number system.
 generateNextDigit2 :: (RandomGen g, Integral i)
   => g  -- ^ The random number generator.
   -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
   -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
-generateNextDigit2 = _generatorMapping (cdfToNextDigit' @Double 2)
+generateNextDigit2 = flip (_generatorMapping . cdfToNextDigit2')
 
 -- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
 generateNextDigit' :: RandomGen g
