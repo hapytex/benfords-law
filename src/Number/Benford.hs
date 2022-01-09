@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, TypeApplications #-}
+{-# LANGUAGE BangPatterns #-}
 
 {-|
 Module      : Number.Benford
@@ -36,14 +36,13 @@ module Number.Benford (
 
 import Control.Arrow(first)
 
-import Data.Bits((.&.))
 import Data.Foldable(foldl')
 import Data.Ratio(numerator, denominator)
 
 import System.Random(Random, RandomGen, random)
 
-_generatorMapping :: (RandomGen g, Random a)
-  => (a -> b)
+_generatorMapping :: RandomGen g
+  => (Double -> b)
   -> g
   -> (b, g)
 _generatorMapping f = go
@@ -242,7 +241,7 @@ generateFirstDigit' :: RandomGen g
   => Int  -- ^ The radix of the given number system, should be greater than one.
   -> g  -- ^ The random number generator.
   -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
-generateFirstDigit' radix = _generatorMapping (min (radix-1) . cdfToFirstDigit' @Double radix)
+generateFirstDigit' radix = _generatorMapping (min (radix-1) . cdfToFirstDigit' radix)
 
 -- | A conditional random generator that generates the first digit according to Benford's law for a number system with a given radix.
 generateFirstDigit :: RandomGen g
@@ -293,7 +292,7 @@ cdfToNextDigit2' :: (Floating a, RealFrac a, Integral i)
   => i  -- ^ The given prefix. If the value is @9@, then we thus determine the digit after @1@, @0@, @0@ and @1@. This value must be greater than or equal to zero.
   -> a  -- ^ The given cumulative probability for which we want to retrieve the digit. Should be greater than or equal to zero and less than one.
   -> Int  -- ^ The corresponding digit for the given prefix and cumulative probability. Unspecified behavior if the given values are out of range.
-cdfToNextDigit2' prefix = fromIntegral . (1 .&.) . _baseCdfToNextDigit 2 (2*prefix)
+cdfToNextDigit2' prefix = fromIntegral . (`mod` 2) . _baseCdfToNextDigit 2 (2*prefix)
 
 -- | Determine the corresponding digit for a given prefix and a given cumulative probability for a number system with a given radix.
 cdfToNextDigit' :: (Floating a, RealFrac a)
@@ -305,25 +304,25 @@ cdfToNextDigit' radix ns = (`mod` radix) . _baseCdfToNextDigit radix (fromIntege
 
 -- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a decimal number system.
 generateNextDigit10 :: (RandomGen g, Integral i)
-  => g  -- ^ The random number generator.
-  -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
+  => i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
+  -> g  -- ^ The random number generator.
   -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
-generateNextDigit10 = flip (_generatorMapping . cdfToNextDigit10')
+generateNextDigit10 = _generatorMapping . cdfToNextDigit10'
 
 -- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a decimal number system.
 generateNextDigit2 :: (RandomGen g, Integral i)
-  => g  -- ^ The random number generator.
-  -> i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
+  => i  -- ^ The given prefix, should be greater than or equal to zero. Leading zeros are ignored.
+  -> g  -- ^ The random number generator.
   -> (Int, g)  -- ^ A 2-tuple with the first digit of a number as first item, and the modified random generator as second item.
-generateNextDigit2 = flip (_generatorMapping . cdfToNextDigit2')
+generateNextDigit2 = _generatorMapping . cdfToNextDigit2'
 
 -- | A random number generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
 generateNextDigit' :: RandomGen g
   => Int  -- ^ The radix of the given number system, should be greater than one.
-  -> g  -- ^ The random number generator.
   -> [Int]  -- ^ The given prefix, for @31@ for example, we generate a digit according to the Benford distribution after the @3@ and @1@ digits.
+  -> g  -- ^ The random number generator.
   -> (Int, g)  -- ^ A 2-tuple with the next digit of a number as first item, and the modified random generator as second item.
-generateNextDigit' radix prefix = _generatorMapping (cdfToNextDigit' @Double radix prefix)
+generateNextDigit' radix prefix = _generatorMapping (cdfToNextDigit' radix prefix)
 
 -- | A conditional random generator that generates the next digit after a certain prefix according to Benford's law for a number system with a given radix.
 generateNextDigit :: RandomGen g
@@ -332,7 +331,7 @@ generateNextDigit :: RandomGen g
   -> [Int]  -- ^ The prefix of the given sequence that is used to determine the next digit.
   -> Maybe (Int, g)  -- ^ A generator for the next digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
 generateNextDigit radix gen prefix
-  | radix > 1 = generateNextDigit' radix gen <$> _fromDigits' radix prefix
+  | radix > 1 =  flip (generateNextDigit' radix) gen <$> _fromDigits' radix prefix
   | otherwise = Nothing
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
