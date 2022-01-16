@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 
-import Number.Benford(cdfToFirstDigit', firstDigit', firstDigitCdf')
+import Number.Benford(cdfToFirstDigit', cdfToNextDigit2', cdfToNextDigit10', firstDigit', firstDigitCdf')
 
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Options
@@ -60,7 +60,9 @@ tests = [
     , testProperty "First digit binary" (checkProbabilityForRadix 2 1 dig2_1)
     ]
   , testGroup "Benford cdf to digit tests" [
-      testProperty "Check probability to first and last digit" checkCdfToDigitForRadix
+      testProperty "Check probability of the first digit for the extremes" checkCdfToFirstDigitForRadix
+    , testProperty "Check probability of the next digit for the extremes with radix 10" checkCdfToNextDigitForRadix10
+    , testProperty "Check probability of the next digit for the extremes with radix 2" checkCdfToNextDigitForRadix2
     ]
   , testGroup "Benford cumulative probability tests" [
       testProperty "cumulative probabilities decimal" (checkCumulativeProbabilityForRadix 10 [dig10_1, dig10_2, dig10_3, dig10_4, dig10_5, dig10_6, dig10_7, dig10_8, dig10_9])
@@ -83,8 +85,14 @@ checkValidProbability f radix digit = radix < 2 || digit <= 0 || digit >= radix 
 checkCumulativeProbabilityForRadix :: Int -> [Double] -> Bool
 checkCumulativeProbabilityForRadix radix items = and (zipWith (\d exp -> abs (firstDigitCdf' radix d - exp) <= 0.001) [1 ..] (scanl1 (+) items))
 
-checkCdfToDigitForRadix :: Int -> Bool
-checkCdfToDigitForRadix radix = radix < 2 || (cdfToFirstDigit' radix 0.0 == 1 && cdfToFirstDigit' radix 0.9999999 == radix - 1)
+checkCdfToFirstDigitForRadix :: Int -> Bool
+checkCdfToFirstDigitForRadix radix = radix < 2 || (cdfToFirstDigit' radix 0.0 == 1 && cdfToFirstDigit' radix 0.9999999 == radix - 1)
+
+checkCdfToNextDigitForRadix10 :: Integer -> Bool
+checkCdfToNextDigitForRadix10 prefix = prefix < 1 || (cdfToNextDigit10' prefix 0.0 == 0 && cdfToNextDigit10' prefix 0.9999999 == 9)
+
+checkCdfToNextDigitForRadix2 :: Integer -> Bool
+checkCdfToNextDigitForRadix2 prefix = prefix < 1 || (cdfToNextDigit2' prefix 0.0 == 0 && cdfToNextDigit2' prefix 0.9999999 == 1)
 
 checkCumulativeProbabilityDistributionForRadix :: Int -> Bool
 checkCumulativeProbabilityDistributionForRadix radix = radix <= 1 || and (zipWith (\d exp -> abs (firstDigitCdf' radix d - exp) <= 0.001) [1 ..] (scanl1 (+) (map (firstDigit' radix) [1 .. radix-1])))
