@@ -331,8 +331,9 @@ generateNextDigit :: RandomGen g
   -> [Int]  -- ^ The prefix of the given sequence that is used to determine the next digit.
   -> Maybe (Int, g)  -- ^ A generator for the next digit wrapped in a 'Just'; 'Nothing' if the radix is out of range.
 generateNextDigit radix gen prefix
-  | radix > 1 =  flip (generateNextDigit' radix) gen <$> _fromDigits' radix prefix
+  | radix > 1, Just n <- _fromDigits' radix prefix =  Just (_generatorMapping (fromIntegral . (`mod` r) . _baseCdfToNextDigit radix (r * n)) gen)
   | otherwise = Nothing
+  where r = fromIntegral radix
 
 generateBenfordSequence10 :: (Floating a, Ord a, RandomGen g)
   => a

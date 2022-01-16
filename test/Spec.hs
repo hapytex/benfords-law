@@ -59,13 +59,17 @@ tests = [
     , testProperty "Nineth digit decimal" (checkProbabilityForRadix 10 9 dig10_9)
     , testProperty "First digit binary" (checkProbabilityForRadix 2 1 dig2_1)
     ]
+  , testGroup "Benford cdf to digit tests" [
+      testProperty "Check probability to first and last digit" checkCdfToDigitForRadix
+    ]
   , testGroup "Benford cumulative probability tests" [
       testProperty "cumulative probabilities decimal" (checkCumulativeProbabilityForRadix 10 [dig10_1, dig10_2, dig10_3, dig10_4, dig10_5, dig10_6, dig10_7, dig10_8, dig10_9])
     , testProperty "cumulative probabilities for an arbitrary radix" checkCumulativeProbabilityDistributionForRadix
+    , testProperty "cumulative probabilities for an arbitrary radix for the last digit" checkCumulativeProbabilityDistributionForLastDigit
     ]
   , testGroup "Benfords cdf to digit tests" [
       testProperty "cumulative probability to first digit should produce a valid first digit" checkCdfToFirstDigit
-    , testProperty "cumulative probability to the next digit should produce a valid next digit" checkCdfToNextDigit
+    -- , testProperty "cumulative probability to the next digit should produce a valid next digit" checkCdfToNextDigit
     ]
   ]
 
@@ -79,9 +83,19 @@ checkValidProbability f radix digit = radix < 2 || digit <= 0 || digit >= radix 
 checkCumulativeProbabilityForRadix :: Int -> [Double] -> Bool
 checkCumulativeProbabilityForRadix radix items = and (zipWith (\d exp -> abs (firstDigitCdf' radix d - exp) <= 0.001) [1 ..] (scanl1 (+) items))
 
+checkCdfToDigitForRadix :: Int -> Bool
+checkCdfToDigitForRadix radix = radix < 2 || (cdfToFirstDigit' radix 0.0 == 1 && cdfToFirstDigit' radix 0.9999999 == radix - 1)
+
 checkCumulativeProbabilityDistributionForRadix :: Int -> Bool
 checkCumulativeProbabilityDistributionForRadix radix = radix <= 1 || and (zipWith (\d exp -> abs (firstDigitCdf' radix d - exp) <= 0.001) [1 ..] (scanl1 (+) (map (firstDigit' radix) [1 .. radix-1])))
 
+checkCumulativeProbabilityDistributionForLastDigit :: Int -> Bool
+checkCumulativeProbabilityDistributionForLastDigit radix = radix <= 1 || abs (firstDigitCdf' radix (radix - 1) - 1.0) <= 0.001
+
 checkCdfToFirstDigit :: Int -> Double -> Bool
 checkCdfToFirstDigit radix cdf = radix <= 1 || cdf < 0.0 || cdf > 1.0 || (0 < x && x < radix)
+  where x = cdfToFirstDigit' radix cdf
+
+checkCdfToNextDigitForLastDigit :: Int -> Double -> Bool
+checkCdfToNextDigitForLastDigit radix cdf = radix <= 1 || cdf < 0.0 || cdf > 1.0 || (0 < x && x < radix)
   where x = cdfToFirstDigit' radix cdf
