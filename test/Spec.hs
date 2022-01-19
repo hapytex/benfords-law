@@ -76,14 +76,14 @@ tests = [
   ]
 
 checkProbabilityForRadix :: Int -> Int -> Double -> Bool
-checkProbabilityForRadix radix digit exp = abs (firstDigit' radix digit - exp) <= 0.001
+checkProbabilityForRadix radix digit exp = firstDigit' radix digit =~ exp
 
 checkValidProbability :: (Int -> Int -> Double) -> Int -> Int -> Bool
 checkValidProbability f radix digit = radix < 2 || digit <= 0 || digit >= radix || (0.0 <= prob && prob <= 1.0)
   where prob = f radix digit
 
 checkCumulativeProbabilityForRadix :: Int -> [Double] -> Bool
-checkCumulativeProbabilityForRadix radix items = and (zipWith (\d exp -> abs (firstDigitCdf' radix d - exp) <= 0.001) [1 ..] (scanl1 (+) items))
+checkCumulativeProbabilityForRadix radix items = and (zipWith (\d exp -> firstDigitCdf' radix d =~ exp) [1 ..] (scanl1 (+) items))
 
 checkCdfToFirstDigitForRadix :: Int -> Bool
 checkCdfToFirstDigitForRadix radix = radix < 2 || (cdfToFirstDigit' radix 0.0 == 1 && cdfToFirstDigit' radix 0.9999999 == radix - 1)
@@ -95,10 +95,10 @@ checkCdfToNextDigitForRadix2 :: Integer -> Bool
 checkCdfToNextDigitForRadix2 prefix = prefix < 1 || (cdfToNextDigit2' prefix 0.0 == 0 && cdfToNextDigit2' prefix 0.9999999 == 1)
 
 checkCumulativeProbabilityDistributionForRadix :: Int -> Bool
-checkCumulativeProbabilityDistributionForRadix radix = radix <= 1 || and (zipWith (\d exp -> abs (firstDigitCdf' radix d - exp) <= 0.001) [1 ..] (scanl1 (+) (map (firstDigit' radix) [1 .. radix-1])))
+checkCumulativeProbabilityDistributionForRadix radix = radix <= 1 || and (zipWith (\d exp -> firstDigitCdf' radix d =~ exp) [1 ..] (scanl1 (+) (map (firstDigit' radix) [1 .. radix-1])))
 
 checkCumulativeProbabilityDistributionForLastDigit :: Int -> Bool
-checkCumulativeProbabilityDistributionForLastDigit radix = radix <= 1 || abs (firstDigitCdf' radix (radix - 1) - 1.0) <= 0.001
+checkCumulativeProbabilityDistributionForLastDigit radix = radix <= 1 || firstDigitCdf' radix (radix - 1) =~ 1.0
 
 checkCdfToFirstDigit :: Int -> Double -> Bool
 checkCdfToFirstDigit radix cdf = radix <= 1 || cdf < 0.0 || cdf > 1.0 || (0 < x && x < radix)
@@ -107,3 +107,6 @@ checkCdfToFirstDigit radix cdf = radix <= 1 || cdf < 0.0 || cdf > 1.0 || (0 < x 
 checkCdfToNextDigitForLastDigit :: Int -> Double -> Bool
 checkCdfToNextDigitForLastDigit radix cdf = radix <= 1 || cdf < 0.0 || cdf > 1.0 || (0 < x && x < radix)
   where x = cdfToFirstDigit' radix cdf
+
+(=~) :: (Floating a, Ord a) => a -> a -> Bool
+x =~ y = abs (x - y) <= 0.001
